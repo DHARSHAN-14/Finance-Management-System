@@ -12,7 +12,7 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const { login, isLoading, error, clearError } = useAuthStore();
+  const { login, isLoggingIn, error, clearError } = useAuthStore();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -23,6 +23,8 @@ export default function LoginScreen() {
     clearError();
     try {
       await login(email.trim().toLowerCase(), password);
+      const u = useAuthStore.getState().user;
+      router.replace(u?.role === 'CLIENT' ? '/(client)/home' : '/(admin)/dashboard');
     } catch (e: any) {
       Alert.alert('Login Failed', e.message);
     }
@@ -30,7 +32,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="always">
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoBox}>
@@ -80,7 +82,7 @@ export default function LoginScreen() {
           <Button
             title="Sign In"
             onPress={handleLogin}
-            loading={isLoading}
+            loading={isLoggingIn}
             style={{ marginTop: Spacing.sm }}
           />
 

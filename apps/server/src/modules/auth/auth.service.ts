@@ -29,6 +29,9 @@ export const authService = {
 
     const { accessToken, refreshToken } = generateTokens(user.id, user.role, user.email);
 
+    // Clear old refresh tokens for this user to avoid unique constraint errors
+    await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+
     await prisma.refreshToken.create({
       data: {
         token: refreshToken,
@@ -65,8 +68,8 @@ export const authService = {
       throw new AppError('Refresh token expired or revoked', 401);
     }
 
-    // Rotate token
-    await prisma.refreshToken.delete({ where: { token } });
+    // Rotate token — clear all old tokens for this user
+    await prisma.refreshToken.deleteMany({ where: { userId: decoded.userId } });
 
     const user = await prisma.user.findUnique({ where: { id: decoded.userId } });
     if (!user || !user.isActive) throw new AppError('User not found', 401);

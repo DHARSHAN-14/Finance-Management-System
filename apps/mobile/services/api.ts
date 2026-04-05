@@ -1,7 +1,9 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = 'http://10.98.223.213:4000/api/v1';
+const API_URL = (
+  process.env.EXPO_PUBLIC_API_URL || 'http://10.98.223.213:4000/api/v1'
+).replace(/\/$/, '');
 
 export const api = axios.create({
   baseURL: API_URL,
@@ -31,8 +33,14 @@ api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
     const originalRequest = error.config as any;
+    if (!originalRequest) return Promise.reject(error);
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const reqUrl = String(originalRequest.url || '');
+      if (reqUrl.includes('/auth/login') || reqUrl.includes('/auth/register')) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });

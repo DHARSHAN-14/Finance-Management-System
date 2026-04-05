@@ -9,7 +9,6 @@ import { useAuthStore } from '../../store/authStore';
 import {
   Card, StatCard, SectionHeader, StatusBadge, LoadingScreen, ErrorState,
 } from '../../components/ui';
-import { LiveClock } from '../../components/LiveClock';
 import { Colors, Spacing, Typography } from '../../constants/theme';
 
 function fmt(n: number) {
@@ -51,16 +50,14 @@ export default function AdminDashboard() {
     >
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <LiveClock variant="hero" />
+        <View>
+          <Text style={styles.greeting}>Welcome back 👋</Text>
           <Text style={styles.userName}>{user?.name}</Text>
           <Text style={styles.userRole}>{user?.role}</Text>
         </View>
-        <View style={{ alignItems: 'flex-end' }}>
-          <TouchableOpacity style={styles.notifBtn} onPress={() => { }}>
-            <Text style={{ fontSize: 22 }}>🔔</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.notifBtn} onPress={() => { }}>
+          <Text style={{ fontSize: 22 }}>🔔</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Summary Cards */}

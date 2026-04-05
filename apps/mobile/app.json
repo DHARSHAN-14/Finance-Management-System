@@ -23,7 +23,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1B4F72"
       },
-      "package": "com.skassociates.app"
+      "package": "com.skassociates.app",
+      "usesCleartextTraffic": true
     },
     "plugins": [
       "expo-router",

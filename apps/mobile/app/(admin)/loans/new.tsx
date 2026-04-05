@@ -3,8 +3,8 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'rea
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { loanApi, customerApi } from '../../../services/api';
 import { Button, Input, Card } from '../../../components/ui';
+import { DatePickerInput } from '../../../components/DatePickerInput';
 import { Colors, Spacing, Typography, Shadow, Radius } from '../../../constants/theme';
-import { LiveClock } from '../../../components/LiveClock';
 
 function fmt(n: number) { return '₹' + (n ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
 
@@ -23,6 +23,7 @@ export default function NewLoan() {
     tenure: '12',
     processingFee: '0',
     purpose: '',
+    startDate: null as Date | null,
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
@@ -77,6 +78,7 @@ export default function NewLoan() {
         tenure: parseInt(form.tenure),
         processingFee: parseFloat(form.processingFee) || 0,
         purpose: form.purpose,
+        ...(form.startDate ? { startDate: form.startDate.toISOString() } : {}),
       });
       Alert.alert('Success', 'Loan application created successfully');
       router.back();
@@ -95,7 +97,7 @@ export default function NewLoan() {
           <Text style={styles.backText}>← Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Loan</Text>
-        <LiveClock variant="compact" />
+        <View style={{ width: 80 }} />
       </View>
 
       <View style={styles.form}>
@@ -163,6 +165,15 @@ export default function NewLoan() {
             <Input label="Processing Fee (₹)" placeholder="1000" value={form.processingFee} onChangeText={set('processingFee')} keyboardType="numeric" />
           </View>
         </View>
+
+        <DatePickerInput
+          label="Start Date (optional)"
+          value={form.startDate}
+          onChange={(date) => setForm((p) => ({ ...p, startDate: date }))}
+          placeholder="Select loan start date"
+          minimumDate={new Date(2020, 0, 1)}
+          maximumDate={new Date(2030, 11, 31)}
+        />
 
         <Input label="Purpose" placeholder="Business expansion, Home renovation..." value={form.purpose} onChangeText={set('purpose')} multiline numberOfLines={2} />
 

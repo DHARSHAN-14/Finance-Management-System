@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const createLoanSchema = z.object({
-  customerId: z.string().uuid(),
+  customerId: z.string().min(1, 'Customer is required'),
   principalAmount: z.number().positive('Principal must be positive'),
   interestRate: z.number().min(0).max(100),
   tenure: z.number().int().min(1).max(360),

@@ -4,7 +4,6 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { loanApi } from '../../../../services/api';
 import { Button, Input } from '../../../../components/ui';
 import { DatePickerInput } from '../../../../components/DatePickerInput';
-import { LiveClock } from '../../../../components/LiveClock';
 import { Colors, Spacing, Typography, Shadow, Radius } from '../../../../constants/theme';
 
 export default function DisburseLoan() {
@@ -47,7 +46,7 @@ export default function DisburseLoan() {
           <Text style={styles.backText}>← Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Disburse Loan</Text>
-        <LiveClock variant="compact" />
+        <View style={{ width: 80 }} />
       </View>
 
       <View style={styles.form}>

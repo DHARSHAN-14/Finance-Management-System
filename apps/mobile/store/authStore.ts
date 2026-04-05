@@ -14,7 +14,10 @@ interface User {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+  /** True while restoring session from storage (root layout waits on this). */
+  isHydrating: boolean;
+  /** True only during sign-in request — separate so Sign In stays tappable during hydrate. */
+  isLoggingIn: boolean;
   error: string | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -25,11 +28,12 @@ interface AuthState {
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isHydrating: false,
+  isLoggingIn: false,
   error: null,
 
   login: async (email, password) => {
-    set({ isLoading: true, error: null });
+    set({ isLoggingIn: true, error: null });
     try {
       const { data } = await authApi.login(email, password);
       const { accessToken, refreshToken, user } = data.data;
@@ -38,11 +42,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         ['refreshToken', refreshToken],
         ['user', JSON.stringify(user)],
       ]);
-      set({ user, isAuthenticated: true, isLoading: false });
+      set({ user, isAuthenticated: true, isLoggingIn: false });
     } catch (err: any) {
       const message = err.response?.data?.message || err.message || 'Login failed';
       console.error('LOGIN ERROR DETAILS:', err);
-      set({ error: message, isLoading: false });
+      set({ error: message, isLoggingIn: false });
       throw new Error(message);
     }
   },
@@ -57,18 +61,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   loadUser: async () => {
-    set({ isLoading: true });
+    set({ isHydrating: true });
     try {
       const token = await AsyncStorage.getItem('accessToken');
       const userStr = await AsyncStorage.getItem('user');
       if (!token || !userStr) {
-        set({ isLoading: false });
+        set({ isHydrating: false });
         return;
       }
       const user = JSON.parse(userStr);
-      set({ user, isAuthenticated: true, isLoading: false });
+      set({ user, isAuthenticated: true, isHydrating: false });
     } catch {
-      set({ isLoading: false });
+      set({ isHydrating: false });
     }
   },
 

@@ -11,19 +11,19 @@ export const createChitSchema = z.object({
 });
 
 export const addMemberSchema = z.object({
-  customerId: z.string().uuid(),
+  customerId: z.string().min(1),
   ticketNo: z.number().int().positive(),
 });
 
 export const recordChitPaymentSchema = z.object({
-  chitMemberId: z.string().uuid(),
+  chitMemberId: z.string().min(1),
   amount: z.number().positive(),
   paymentDate: z.string().datetime().optional(),
-  paymentId: z.string().uuid().optional(),
+  paymentId: z.string().min(1).optional(),
 });
 
 export const conductAuctionSchema = z.object({
-  winnerId: z.string().uuid(),
+  winnerId: z.string().min(1),
   auctionAmount: z.number().positive(),
   auctionDate: z.string().datetime().optional(),
 });

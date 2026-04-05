@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const recordPaymentSchema = z.object({
-  customerId: z.string().uuid(),
+  customerId: z.string().min(1),
   amount: z.number().positive(),
   method: z.enum(['CASH', 'UPI', 'BANK_TRANSFER', 'CHEQUE']).default('CASH'),
   referenceNo: z.string().optional(),
@@ -9,8 +9,8 @@ export const recordPaymentSchema = z.object({
   paymentDate: z.string().datetime().optional(),
   // Optional: allocate to specific loan installments
   allocations: z.array(z.object({
-    loanId: z.string().uuid(),
-    installmentId: z.string().uuid(),
+    loanId: z.string().min(1),
+    installmentId: z.string().min(1),
     amount: z.number().positive(),
   })).optional(),
 });

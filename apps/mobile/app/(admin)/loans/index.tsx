@@ -5,7 +5,6 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { loanApi } from '../../../services/api';
 import { StatusBadge, LoadingScreen, ErrorState, EmptyState } from '../../../components/ui';
-import { LiveClock } from '../../../components/LiveClock';
 import { Colors, Spacing, Typography, Radius, Shadow } from '../../../constants/theme';
 
 function fmt(n: number) { return '₹' + (n ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
@@ -105,12 +104,9 @@ export default function LoansScreen() {
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <View style={{ flex: 1 }}>
+        <View>
           <Text style={styles.headerTitle}>{customerId ? 'Customer Loans' : 'Loan Management'}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 12 }}>
-            <Text style={styles.headerSubtitle}>{loans.length} total loans</Text>
-            <LiveClock variant="compact" />
-          </View>
+          <Text style={styles.headerSubtitle}>{loans.length} total loans</Text>
         </View>
         <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/(admin)/loans/new' as any)}>
           <Text style={styles.addBtnText}>+</Text>

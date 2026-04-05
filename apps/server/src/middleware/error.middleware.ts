@@ -37,7 +37,8 @@ export const errorHandler = (
 
   // Prisma errors
   if ((err as any).code === 'P2002') {
-    const field = (err as any).meta?.target?.[0] || 'field';
+    const target = (err as any).meta?.target;
+    const field = Array.isArray(target) ? target[0] : (typeof target === 'string' ? target : 'field');
     return res.status(409).json({ success: false, message: `${field} already exists` });
   }
 

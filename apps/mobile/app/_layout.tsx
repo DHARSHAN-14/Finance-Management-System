@@ -4,7 +4,7 @@ import { useAuthStore } from '../store/authStore';
 import { Colors } from '../constants/theme';
 
 export default function RootLayout() {
-  const { isAuthenticated, isLoading, loadUser, user } = useAuthStore();
+  const { isAuthenticated, isHydrating, loadUser, user } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
   const [isMounted, setIsMounted] = useState(false);
@@ -15,11 +15,11 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    if (!isMounted || isLoading) return;
+    if (!isMounted || isHydrating) return;
+    // Expo Router often reports [] briefly; without this, post-login redirect never runs.
+    if (segments.length === 0) return;
 
     const inAuthGroup = segments[0] === '(auth)';
-    const inAdminGroup = segments[0] === '(admin)';
-    const inClientGroup = segments[0] === '(client)';
 
     if (!isAuthenticated && !inAuthGroup) {
       router.replace('/(auth)/login');
@@ -30,7 +30,7 @@ export default function RootLayout() {
         router.replace('/(admin)/dashboard');
       }
     }
-  }, [isAuthenticated, isLoading, segments, user, isMounted]);
+  }, [isAuthenticated, isHydrating, segments, user, isMounted]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
