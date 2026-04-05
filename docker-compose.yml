@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sk_postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-skadmin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-skpassword}
+      POSTGRES_DB: ${DB_NAME:-sk_associates}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skadmin -d sk_associates"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./apps/server
+      dockerfile: Dockerfile
+    container_name: sk_server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-skadmin}:${DB_PASSWORD:-skpassword}@postgres:5432/${DB_NAME:-sk_associates}
+      JWT_SECRET: ${JWT_SECRET:-supersecretjwtkey}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-supersecretrefreshkey}
+      PORT: 4000
+      NODE_ENV: production
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./apps/server:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

@@ -1,0 +1,97 @@
+{
+  "info": {
+    "name": "SK Associates Finance API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:4000/api/v1" },
+    { "key": "token", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}" }]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login (Admin)",
+          "event": [{ "listen": "test", "script": { "exec": ["var json = pm.response.json(); pm.collectionVariables.set('token', json.data.accessToken);"] } }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "url": "{{base_url}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\"email\":\"admin@skassociates.com\",\"password\":\"Admin@1234\"}", "options": { "raw": { "language": "json" } } }
+          }
+        },
+        { "name": "Login (Staff)", "request": { "auth": { "type": "noauth" }, "method": "POST", "url": "{{base_url}}/auth/login", "body": { "mode": "raw", "raw": "{\"email\":\"staff@skassociates.com\",\"password\":\"Staff@1234\"}", "options": { "raw": { "language": "json" } } } } },
+        { "name": "Login (Client)", "request": { "auth": { "type": "noauth" }, "method": "POST", "url": "{{base_url}}/auth/login", "body": { "mode": "raw", "raw": "{\"email\":\"client@skassociates.com\",\"password\":\"Client@1234\"}", "options": { "raw": { "language": "json" } } } } },
+        { "name": "Get Me", "request": { "method": "GET", "url": "{{base_url}}/auth/me" } }
+      ]
+    },
+    {
+      "name": "Customers",
+      "item": [
+        { "name": "List Customers", "request": { "method": "GET", "url": { "raw": "{{base_url}}/customers?page=1&limit=10", "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "10" }] } } },
+        { "name": "Get Customer", "request": { "method": "GET", "url": "{{base_url}}/customers/:id" } },
+        { "name": "Create Customer", "request": { "method": "POST", "url": "{{base_url}}/customers", "body": { "mode": "raw", "raw": "{\"name\":\"Test Customer\",\"phone\":\"9876500099\",\"email\":\"test@example.com\",\"occupation\":\"Trader\",\"monthlyIncome\":40000}", "options": { "raw": { "language": "json" } } } } },
+        { "name": "Customer Stats", "request": { "method": "GET", "url": "{{base_url}}/customers/:id/stats" } }
+      ]
+    },
+    {
+      "name": "Loans",
+      "item": [
+        { "name": "List Loans", "request": { "method": "GET", "url": "{{base_url}}/loans" } },
+        { "name": "EMI Preview", "request": { "method": "GET", "url": { "raw": "{{base_url}}/loans/emi-preview?principal=100000&rate=12&tenure=12", "query": [{ "key": "principal", "value": "100000" }, { "key": "rate", "value": "12" }, { "key": "tenure", "value": "12" }] } } },
+        { "name": "Create Loan", "request": { "method": "POST", "url": "{{base_url}}/loans", "body": { "mode": "raw", "raw": "{\"customerId\":\"REPLACE_WITH_CUSTOMER_ID\",\"principalAmount\":100000,\"interestRate\":12,\"tenure\":12,\"purpose\":\"Business\"}", "options": { "raw": { "language": "json" } } } } },
+        { "name": "Approve Loan", "request": { "method": "PATCH", "url": "{{base_url}}/loans/:id/approve" } },
+        { "name": "Disburse Loan", "request": { "method": "PATCH", "url": "{{base_url}}/loans/:id/disburse", "body": { "mode": "raw", "raw": "{\"disbursedAmount\":99000,\"startDate\":\"2024-01-01T00:00:00.000Z\"}", "options": { "raw": { "language": "json" } } } } },
+        { "name": "Get Overdue Loans", "request": { "method": "GET", "url": "{{base_url}}/loans/overdue" } },
+        { "name": "Get Schedule", "request": { "method": "GET", "url": "{{base_url}}/loans/:id/schedule" } }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        { "name": "List Payments", "request": { "method": "GET", "url": "{{base_url}}/payments" } },
+        { "name": "Record Payment", "request": { "method": "POST", "url": "{{base_url}}/payments", "body": { "mode": "raw", "raw": "{\"customerId\":\"REPLACE_WITH_CUSTOMER_ID\",\"amount\":8885,\"method\":\"CASH\",\"notes\":\"January EMI\"}", "options": { "raw": { "language": "json" } } } } }
+      ]
+    },
+    {
+      "name": "Chits",
+      "item": [
+        { "name": "List Chits", "request": { "method": "GET", "url": "{{base_url}}/chits" } },
+        { "name": "Get Chit", "request": { "method": "GET", "url": "{{base_url}}/chits/:id" } },
+        { "name": "Create Chit", "request": { "method": "POST", "url": "{{base_url}}/chits", "body": { "mode": "raw", "raw": "{\"name\":\"Silver Chit 2024\",\"totalValue\":50000,\"monthlyContribution\":5000,\"duration\":10,\"commissionPct\":5}", "options": { "raw": { "language": "json" } } } } },
+        { "name": "Add Member", "request": { "method": "POST", "url": "{{base_url}}/chits/:id/members", "body": { "mode": "raw", "raw": "{\"customerId\":\"REPLACE_WITH_CUSTOMER_ID\",\"ticketNo\":4}", "options": { "raw": { "language": "json" } } } } }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        { "name": "Summary", "request": { "method": "GET", "url": "{{base_url}}/dashboard/summary" } },
+        { "name": "Recent Activity", "request": { "method": "GET", "url": "{{base_url}}/dashboard/activity" } },
+        { "name": "Monthly Chart", "request": { "method": "GET", "url": "{{base_url}}/dashboard/monthly-chart" } }
+      ]
+    },
+    {
+      "name": "Honesty Score",
+      "item": [
+        { "name": "My Score", "request": { "method": "GET", "url": "{{base_url}}/honesty-score/my-score" } },
+        { "name": "My Suggestions", "request": { "method": "GET", "url": "{{base_url}}/honesty-score/my-suggestions" } },
+        { "name": "Leaderboard", "request": { "method": "GET", "url": "{{base_url}}/honesty-score/leaderboard" } },
+        { "name": "Get Score by Customer", "request": { "method": "GET", "url": "{{base_url}}/honesty-score/:customerId" } },
+        { "name": "Save Snapshot", "request": { "method": "POST", "url": "{{base_url}}/honesty-score/:customerId/snapshot" } }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        { "name": "List Notifications", "request": { "method": "GET", "url": "{{base_url}}/notifications" } },
+        { "name": "Mark All Read", "request": { "method": "PATCH", "url": "{{base_url}}/notifications/read-all" } },
+        { "name": "Broadcast", "request": { "method": "POST", "url": "{{base_url}}/notifications/broadcast", "body": { "mode": "raw", "raw": "{\"title\":\"Reminder\",\"body\":\"Your EMI is due this month. Please pay on time.\"}", "options": { "raw": { "language": "json" } } } } }
+      ]
+    }
+  ]
+}

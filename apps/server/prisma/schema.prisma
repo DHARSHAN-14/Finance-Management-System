@@ -1,0 +1,320 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  STAFF
+  CLIENT
+}
+
+enum LoanStatus {
+  PENDING
+  APPROVED
+  DISBURSED
+  ACTIVE
+  CLOSED
+  DEFAULTED
+  REJECTED
+}
+
+enum ChitStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CHEQUE
+}
+
+enum InstallmentStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIAL
+  WAIVED
+}
+
+enum ChitAuctionStatus {
+  PENDING
+  COMPLETED
+  SKIPPED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         UserRole @default(CLIENT)
+  phone        String?
+  isActive     Boolean  @default(true)
+  customerId   String?  @unique
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  refreshTokens RefreshToken[]
+  auditLogs    AuditLog[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("refresh_tokens")
+}
+
+model Customer {
+  id            String    @id @default(uuid())
+  name          String
+  email         String?
+  phone         String    @unique
+  address       String?
+  aadhaarNo     String?   @unique
+  panNo         String?   @unique
+  occupation    String?
+  monthlyIncome Float?
+  photoUrl      String?
+  isActive      Boolean   @default(true)
+  user          User?
+  loans         Loan[]
+  chitMembers   ChitMember[]
+  payments      Payment[]
+  honestyScores HonestyScoreSnapshot[]
+  notifications Notification[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("customers")
+}
+
+model Loan {
+  id               String        @id @default(uuid())
+  customerId       String
+  customer         Customer      @relation(fields: [customerId], references: [id])
+  loanNo           String        @unique
+  principalAmount  Float
+  interestRate     Float
+  tenure           Int
+  emi              Float
+  processingFee    Float         @default(0)
+  disbursedAmount  Float?
+  status           LoanStatus    @default(PENDING)
+  purpose          String?
+  startDate        DateTime?
+  endDate          DateTime?
+  approvedBy       String?
+  approvedAt       DateTime?
+  disbursedAt      DateTime?
+  installments     LoanInstallment[]
+  paymentAllocations PaymentAllocation[]
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@map("loans")
+}
+
+model LoanInstallment {
+  id               String            @id @default(uuid())
+  loanId           String
+  loan             Loan              @relation(fields: [loanId], references: [id])
+  installmentNo    Int
+  dueDate          DateTime
+  principalAmount  Float
+  interestAmount   Float
+  totalAmount      Float
+  paidAmount       Float             @default(0)
+  status           InstallmentStatus @default(PENDING)
+  paidDate         DateTime?
+  penaltyAmount    Float             @default(0)
+  paymentAllocations PaymentAllocation[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  @@unique([loanId, installmentNo])
+  @@map("loan_installments")
+}
+
+model Chit {
+  id                  String      @id @default(uuid())
+  name                String
+  totalValue          Float
+  monthlyContribution Float
+  duration            Int
+  commissionPct       Float       @default(5)
+  status              ChitStatus  @default(UPCOMING)
+  startDate           DateTime?
+  endDate             DateTime?
+  description         String?
+  members             ChitMember[]
+  installments        ChitInstallment[]
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  @@map("chits")
+}
+
+model ChitMember {
+  id           String    @id @default(uuid())
+  chitId       String
+  chit         Chit      @relation(fields: [chitId], references: [id])
+  customerId   String
+  customer     Customer  @relation(fields: [customerId], references: [id])
+  ticketNo     Int
+  hasReceived  Boolean   @default(false)
+  receivedAt   DateTime?
+  receivedAmount Float?
+  chitInstallments ChitInstallmentPayment[]
+  createdAt    DateTime  @default(now())
+
+  @@unique([chitId, customerId])
+  @@unique([chitId, ticketNo])
+  @@map("chit_members")
+}
+
+model ChitInstallment {
+  id              String            @id @default(uuid())
+  chitId          String
+  chit            Chit              @relation(fields: [chitId], references: [id])
+  installmentNo   Int
+  dueDate         DateTime
+  auctionDate     DateTime?
+  auctionAmount   Float?
+  auctionStatus   ChitAuctionStatus @default(PENDING)
+  winnerId        String?
+  payments        ChitInstallmentPayment[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@unique([chitId, installmentNo])
+  @@map("chit_installments")
+}
+
+model ChitInstallmentPayment {
+  id                String          @id @default(uuid())
+  chitInstallmentId String
+  chitInstallment   ChitInstallment @relation(fields: [chitInstallmentId], references: [id])
+  chitMemberId      String
+  chitMember        ChitMember      @relation(fields: [chitMemberId], references: [id])
+  amount            Float
+  paidDate          DateTime        @default(now())
+  paymentId         String?
+  payment           Payment?        @relation(fields: [paymentId], references: [id])
+  createdAt         DateTime        @default(now())
+
+  @@map("chit_installment_payments")
+}
+
+model Payment {
+  id             String              @id @default(uuid())
+  customerId     String
+  customer       Customer            @relation(fields: [customerId], references: [id])
+  paymentNo      String              @unique
+  amount         Float
+  method         PaymentMethod       @default(CASH)
+  referenceNo    String?
+  notes          String?
+  paymentDate    DateTime            @default(now())
+  collectedBy    String?
+  allocations    PaymentAllocation[]
+  chitPayments   ChitInstallmentPayment[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  @@map("payments")
+}
+
+model PaymentAllocation {
+  id              String           @id @default(uuid())
+  paymentId       String
+  payment         Payment          @relation(fields: [paymentId], references: [id])
+  loanId          String
+  loan            Loan             @relation(fields: [loanId], references: [id])
+  installmentId   String
+  installment     LoanInstallment  @relation(fields: [installmentId], references: [id])
+  amount          Float
+  createdAt       DateTime         @default(now())
+
+  @@map("payment_allocations")
+}
+
+model HonestyScoreSnapshot {
+  id              String    @id @default(uuid())
+  customerId      String
+  customer        Customer  @relation(fields: [customerId], references: [id])
+  score           Float
+  category        String
+  onTimePayments  Int
+  latePayments    Int
+  missedPayments  Int
+  bonus           Float     @default(0)
+  snapshotDate    DateTime  @default(now())
+
+  @@map("honesty_score_snapshots")
+}
+
+model Notification {
+  id          String    @id @default(uuid())
+  customerId  String
+  customer    Customer  @relation(fields: [customerId], references: [id])
+  title       String
+  body        String
+  type        String    @default("INFO")
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@map("notifications")
+}
+
+model Announcement {
+  id          String    @id @default(uuid())
+  title       String
+  body        String
+  targetRole  String?
+  isActive    Boolean   @default(true)
+  createdBy   String
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime?
+
+  @@map("announcements")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  action     String
+  entity     String
+  entityId   String?
+  oldValue   Json?
+  newValue   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
