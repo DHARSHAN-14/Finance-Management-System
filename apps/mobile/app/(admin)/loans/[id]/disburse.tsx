@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { loanApi } from '../../../../services/api';
-import { Button, Input, Card } from '../../../../components/ui';
-import { Colors, Spacing, Typography } from '../../../../constants/theme';
+import { Button, Input } from '../../../../components/ui';
+import { Colors, Spacing, Typography, Shadow, Radius } from '../../../../constants/theme';
 
 export default function DisburseLoan() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -16,7 +16,7 @@ export default function DisburseLoan() {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.disbursedAmount || parseFloat(form.disbursedAmount) <= 0) e.disbursedAmount = 'Enter disbursed amount';
+    if (!form.disbursedAmount || parseFloat(form.disbursedAmount) <= 0) e.disbursedAmount = 'Enter the disbursed amount';
     if (!form.startDate) e.startDate = 'Enter start date (YYYY-MM-DD)';
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -40,21 +40,32 @@ export default function DisburseLoan() {
   };
 
   return (
-    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={{ color: Colors.white, fontSize: 16 }}>← Cancel</Text>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <Text style={styles.backText}>← Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Disburse Loan</Text>
-        <View style={{ width: 60 }} />
+        <Text style={styles.headerTitle}>Disburse Loan</Text>
+        <View style={{ width: 80 }} />
       </View>
 
       <View style={styles.form}>
-        <Card style={{ marginBottom: Spacing.lg, backgroundColor: Colors.info + '10' }}>
-          <Text style={[Typography.bodySmall, { color: Colors.info }]}>
-            💡 Disbursing will generate the full EMI schedule and activate the loan. This cannot be undone.
-          </Text>
-        </Card>
+        {/* Warning Notice */}
+        <View style={styles.notice}>
+          <View style={styles.noticeIcon}>
+            <Text style={{ fontSize: 22 }}>⚡</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.noticeTitle}>Important Action</Text>
+            <Text style={styles.noticeText}>
+              Disbursing will generate the full EMI schedule and activate the loan. This action cannot be undone.
+            </Text>
+          </View>
+        </View>
+
+        {/* Form Fields */}
+        <Text style={styles.sectionLabel}>DISBURSAL DETAILS</Text>
 
         <Input
           label="Disbursed Amount (₹) *"
@@ -73,10 +84,10 @@ export default function DisburseLoan() {
         />
 
         <Button
-          title={saving ? 'Disbursing...' : 'Confirm Disbursal'}
+          title={saving ? 'Processing...' : 'Confirm Disbursal'}
           onPress={handleDisburse}
           loading={saving}
-          style={{ marginTop: Spacing.sm }}
+          style={styles.submitBtn}
         />
       </View>
     </ScrollView>
@@ -87,8 +98,35 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
   header: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: Spacing.lg, paddingTop: 56, backgroundColor: Colors.primary,
+    paddingHorizontal: Spacing.lg, paddingTop: 56, paddingBottom: 20,
+    backgroundColor: Colors.primary,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
   },
-  title: { color: Colors.white, fontSize: 18, fontWeight: '700' },
-  form: { padding: Spacing.lg },
+  backBtn: { paddingHorizontal: 14, paddingVertical: 8, backgroundColor: Colors.white + '18', borderRadius: 10 },
+  backText: { color: Colors.white, fontSize: 14, fontWeight: '600' },
+  headerTitle: { color: Colors.white, fontSize: 20, fontWeight: '800' },
+  form: { padding: Spacing.lg, paddingBottom: 40 },
+
+  // Notice
+  notice: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: Colors.warning + '12',
+    borderRadius: 16, padding: 16, marginBottom: 24,
+    borderWidth: 1.5, borderColor: Colors.warning + '30',
+  },
+  noticeIcon: {
+    width: 44, height: 44, borderRadius: 12,
+    backgroundColor: Colors.warning + '20',
+    justifyContent: 'center', alignItems: 'center',
+    marginRight: 14,
+  },
+  noticeTitle: { fontSize: 14, fontWeight: '700', color: Colors.warning, marginBottom: 4 },
+  noticeText: { fontSize: 12, color: Colors.textSecondary, lineHeight: 18 },
+
+  sectionLabel: {
+    fontSize: 11, fontWeight: '700', color: Colors.textMuted,
+    letterSpacing: 1, marginBottom: 16,
+  },
+
+  submitBtn: { marginTop: 10, borderRadius: 14, height: 54 },
 });
