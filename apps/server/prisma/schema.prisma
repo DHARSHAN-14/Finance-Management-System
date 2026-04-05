@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mongodb"
   url      = env("DATABASE_URL")
 }
 
@@ -52,14 +52,14 @@ enum ChitAuctionStatus {
 }
 
 model User {
-  id           String   @id @default(uuid())
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   email        String   @unique
   password     String
   role         UserRole @default(CLIENT)
   phone        String?
   isActive     Boolean  @default(true)
-  customerId   String?  @unique
+  customerId   String?  @db.ObjectId
   customer     Customer? @relation(fields: [customerId], references: [id])
   refreshTokens RefreshToken[]
   auditLogs    AuditLog[]
@@ -70,9 +70,9 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   token     String   @unique
-  userId    String
+  userId    String   @db.ObjectId
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -81,7 +81,7 @@ model RefreshToken {
 }
 
 model Customer {
-  id            String    @id @default(uuid())
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
   name          String
   email         String?
   phone         String    @unique
@@ -92,7 +92,7 @@ model Customer {
   monthlyIncome Float?
   photoUrl      String?
   isActive      Boolean   @default(true)
-  user          User?
+  users         User[]
   loans         Loan[]
   chitMembers   ChitMember[]
   payments      Payment[]
@@ -105,8 +105,8 @@ model Customer {
 }
 
 model Loan {
-  id               String        @id @default(uuid())
-  customerId       String
+  id               String        @id @default(auto()) @map("_id") @db.ObjectId
+  customerId       String        @db.ObjectId
   customer         Customer      @relation(fields: [customerId], references: [id])
   loanNo           String        @unique
   principalAmount  Float
@@ -131,8 +131,8 @@ model Loan {
 }
 
 model LoanInstallment {
-  id               String            @id @default(uuid())
-  loanId           String
+  id               String            @id @default(auto()) @map("_id") @db.ObjectId
+  loanId           String            @db.ObjectId
   loan             Loan              @relation(fields: [loanId], references: [id])
   installmentNo    Int
   dueDate          DateTime
@@ -152,7 +152,7 @@ model LoanInstallment {
 }
 
 model Chit {
-  id                  String      @id @default(uuid())
+  id                  String      @id @default(auto()) @map("_id") @db.ObjectId
   name                String
   totalValue          Float
   monthlyContribution Float
@@ -171,10 +171,10 @@ model Chit {
 }
 
 model ChitMember {
-  id           String    @id @default(uuid())
-  chitId       String
+  id           String    @id @default(auto()) @map("_id") @db.ObjectId
+  chitId       String    @db.ObjectId
   chit         Chit      @relation(fields: [chitId], references: [id])
-  customerId   String
+  customerId   String    @db.ObjectId
   customer     Customer  @relation(fields: [customerId], references: [id])
   ticketNo     Int
   hasReceived  Boolean   @default(false)
@@ -189,15 +189,15 @@ model ChitMember {
 }
 
 model ChitInstallment {
-  id              String            @id @default(uuid())
-  chitId          String
+  id              String            @id @default(auto()) @map("_id") @db.ObjectId
+  chitId          String            @db.ObjectId
   chit            Chit              @relation(fields: [chitId], references: [id])
   installmentNo   Int
   dueDate         DateTime
   auctionDate     DateTime?
   auctionAmount   Float?
   auctionStatus   ChitAuctionStatus @default(PENDING)
-  winnerId        String?
+  winnerId        String?           @db.ObjectId
   payments        ChitInstallmentPayment[]
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
@@ -207,14 +207,14 @@ model ChitInstallment {
 }
 
 model ChitInstallmentPayment {
-  id                String          @id @default(uuid())
-  chitInstallmentId String
+  id                String          @id @default(auto()) @map("_id") @db.ObjectId
+  chitInstallmentId String          @db.ObjectId
   chitInstallment   ChitInstallment @relation(fields: [chitInstallmentId], references: [id])
-  chitMemberId      String
+  chitMemberId      String          @db.ObjectId
   chitMember        ChitMember      @relation(fields: [chitMemberId], references: [id])
   amount            Float
   paidDate          DateTime        @default(now())
-  paymentId         String?
+  paymentId         String?         @db.ObjectId
   payment           Payment?        @relation(fields: [paymentId], references: [id])
   createdAt         DateTime        @default(now())
 
@@ -222,8 +222,8 @@ model ChitInstallmentPayment {
 }
 
 model Payment {
-  id             String              @id @default(uuid())
-  customerId     String
+  id             String              @id @default(auto()) @map("_id") @db.ObjectId
+  customerId     String              @db.ObjectId
   customer       Customer            @relation(fields: [customerId], references: [id])
   paymentNo      String              @unique
   amount         Float
@@ -231,7 +231,7 @@ model Payment {
   referenceNo    String?
   notes          String?
   paymentDate    DateTime            @default(now())
-  collectedBy    String?
+  collectedBy    String?             @db.ObjectId
   allocations    PaymentAllocation[]
   chitPayments   ChitInstallmentPayment[]
   createdAt      DateTime            @default(now())
@@ -241,12 +241,12 @@ model Payment {
 }
 
 model PaymentAllocation {
-  id              String           @id @default(uuid())
-  paymentId       String
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId       String           @db.ObjectId
   payment         Payment          @relation(fields: [paymentId], references: [id])
-  loanId          String
+  loanId          String           @db.ObjectId
   loan            Loan             @relation(fields: [loanId], references: [id])
-  installmentId   String
+  installmentId   String           @db.ObjectId
   installment     LoanInstallment  @relation(fields: [installmentId], references: [id])
   amount          Float
   createdAt       DateTime         @default(now())
@@ -255,8 +255,8 @@ model PaymentAllocation {
 }
 
 model HonestyScoreSnapshot {
-  id              String    @id @default(uuid())
-  customerId      String
+  id              String    @id @default(auto()) @map("_id") @db.ObjectId
+  customerId      String    @db.ObjectId
   customer        Customer  @relation(fields: [customerId], references: [id])
   score           Float
   category        String
@@ -270,8 +270,8 @@ model HonestyScoreSnapshot {
 }
 
 model Notification {
-  id          String    @id @default(uuid())
-  customerId  String
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  customerId  String    @db.ObjectId
   customer    Customer  @relation(fields: [customerId], references: [id])
   title       String
   body        String
@@ -283,12 +283,12 @@ model Notification {
 }
 
 model Announcement {
-  id          String    @id @default(uuid())
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
   title       String
   body        String
   targetRole  String?
   isActive    Boolean   @default(true)
-  createdBy   String
+  createdBy   String    @db.ObjectId
   createdAt   DateTime  @default(now())
   expiresAt   DateTime?
 
@@ -296,12 +296,12 @@ model Announcement {
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
   user       User     @relation(fields: [userId], references: [id])
   action     String
   entity     String
-  entityId   String?
+  entityId   String?  @db.ObjectId
   oldValue   Json?
   newValue   Json?
   ipAddress  String?
@@ -311,7 +311,7 @@ model AuditLog {
 }
 
 model SystemSetting {
-  id        String   @id @default(uuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   key       String   @unique
   value     String
   updatedAt DateTime @updatedAt

@@ -87,6 +87,10 @@ export default function LoginScreen() {
           <TouchableOpacity style={styles.forgotBtn} onPress={() => router.push('/(auth)/forgot-password')}>
             <Text style={{ color: Colors.primary, fontWeight: '500' }}>Forgot Password?</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={{ alignItems: 'center', marginTop: Spacing.sm, padding: Spacing.sm }} onPress={() => router.push('/(auth)/register')}>
+            <Text style={{ color: Colors.textSecondary }}>Don't have an account? <Text style={{ color: Colors.primary, fontWeight: '500' }}>Sign Up</Text></Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={styles.footer}>SK Associates © {new Date().getFullYear()}</Text>

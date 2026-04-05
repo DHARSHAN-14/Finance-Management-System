@@ -69,10 +69,13 @@ export const dashboardService = {
       prisma.loan.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
-        include: { customer: { select: { name: true } } },
         select: {
-          id: true, loanNo: true, principalAmount: true, status: true,
-          createdAt: true, customer: true,
+          id: true,
+          loanNo: true,
+          principalAmount: true,
+          status: true,
+          createdAt: true,
+          customer: { select: { name: true } },
         },
       }),
       prisma.loan.findMany({

@@ -40,7 +40,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       ]);
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Login failed';
+      const message = err.response?.data?.message || err.message || 'Login failed';
+      console.error('LOGIN ERROR DETAILS:', err);
       set({ error: message, isLoading: false });
       throw new Error(message);
     }
@@ -50,7 +51,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       const refreshToken = await AsyncStorage.getItem('refreshToken');
       if (refreshToken) await authApi.logout(refreshToken);
-    } catch {}
+    } catch { }
     await AsyncStorage.multiRemove(['accessToken', 'refreshToken', 'user']);
     set({ user: null, isAuthenticated: false });
   },

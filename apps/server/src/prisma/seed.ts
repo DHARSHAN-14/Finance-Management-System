@@ -9,21 +9,19 @@ async function main() {
   console.log('Seeding database...');
 
   // Clear existing data
-  await prisma.auditLog.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.honestyScoreSnapshot.deleteMany();
-  await prisma.paymentAllocation.deleteMany();
-  await prisma.chitInstallmentPayment.deleteMany();
-  await prisma.chitInstallment.deleteMany();
-  await prisma.chitMember.deleteMany();
-  await prisma.chit.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.loanInstallment.deleteMany();
-  await prisma.loan.deleteMany();
-  await prisma.refreshToken.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.customer.deleteMany();
-  await prisma.systemSetting.deleteMany();
+  const collections = [
+    prisma.auditLog, prisma.notification, prisma.honestyScoreSnapshot,
+    prisma.paymentAllocation, prisma.chitInstallmentPayment,
+    prisma.chitInstallment, prisma.chitMember, prisma.chit,
+    prisma.payment, prisma.loanInstallment, prisma.loan,
+    prisma.refreshToken, prisma.user, prisma.customer,
+    prisma.announcement, prisma.systemSetting,
+  ];
+  for (const col of collections) {
+    await (col as any).deleteMany();
+  }
+  // Allow MongoDB indexes to settle
+  await new Promise(r => setTimeout(r, 1000));
 
   const hashedAdmin = await bcrypt.hash('Admin@1234', 12);
   const hashedStaff = await bcrypt.hash('Staff@1234', 12);

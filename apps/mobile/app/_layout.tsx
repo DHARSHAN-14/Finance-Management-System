@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { useAuthStore } from '../store/authStore';
 import { Colors } from '../constants/theme';
@@ -7,13 +7,15 @@ export default function RootLayout() {
   const { isAuthenticated, isLoading, loadUser, user } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     loadUser();
   }, []);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (!isMounted || isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
     const inAdminGroup = segments[0] === '(admin)';
@@ -28,7 +30,7 @@ export default function RootLayout() {
         router.replace('/(admin)/dashboard');
       }
     }
-  }, [isAuthenticated, isLoading, segments, user]);
+  }, [isAuthenticated, isLoading, segments, user, isMounted]);
 
   return (
     <Stack screenOptions={{ headerShown: false }}>

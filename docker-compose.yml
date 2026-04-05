@@ -1,20 +1,17 @@
 version: '3.8'
 
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: sk_postgres
-    environment:
-      POSTGRES_USER: ${DB_USER:-skadmin}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-skpassword}
-      POSTGRES_DB: ${DB_NAME:-sk_associates}
+  mongodb:
+    image: mongo:6
+    container_name: sk_mongodb
     ports:
-      - "5432:5432"
+      - "27017:27017"
+    command: ["--replSet", "rs0", "--bind_ip_all"]
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - mongodb_data:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U skadmin -d sk_associates"]
-      interval: 10s
+      test: echo "try { rs.status() } catch (err) { rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}) }" | mongosh --port 27017 --quiet
+      interval: 5s
       timeout: 5s
       retries: 5
 
@@ -24,10 +21,10 @@ services:
       dockerfile: Dockerfile
     container_name: sk_server
     depends_on:
-      postgres:
+      mongodb:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${DB_USER:-skadmin}:${DB_PASSWORD:-skpassword}@postgres:5432/${DB_NAME:-sk_associates}
+      DATABASE_URL: mongodb://mongodb:27017/sk_associates?replicaSet=rs0&directConnection=true
       JWT_SECRET: ${JWT_SECRET:-supersecretjwtkey}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-supersecretrefreshkey}
       PORT: 4000
@@ -39,4 +36,4 @@ services:
       - /app/node_modules
 
 volumes:
-  postgres_data:
+  mongodb_data:
