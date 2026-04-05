@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { loanApi, customerApi } from '../../../services/api';
 import { Button, Input, Card } from '../../../components/ui';
 import { Colors, Spacing, Typography, Shadow, Radius } from '../../../constants/theme';
+import { LiveClock } from '../../../components/LiveClock';
 
 function fmt(n: number) { return '₹' + (n ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
 
@@ -94,7 +95,7 @@ export default function NewLoan() {
           <Text style={styles.backText}>← Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Loan</Text>
-        <View style={{ width: 80 }} />
+        <LiveClock variant="compact" />
       </View>
 
       <View style={styles.form}>

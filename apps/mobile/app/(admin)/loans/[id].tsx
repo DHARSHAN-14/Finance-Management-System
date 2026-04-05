@@ -5,6 +5,7 @@ import { loanApi } from '../../../services/api';
 import { useAuthStore } from '../../../store/authStore';
 import { StatusBadge, LoadingScreen, ErrorState, Button, SectionHeader } from '../../../components/ui';
 import { Colors, Spacing, Typography, Shadow, Radius } from '../../../constants/theme';
+import { LiveClock } from '../../../components/LiveClock';
 
 function fmt(n: number) { return '₹' + (n ?? 0).toLocaleString('en-IN', { maximumFractionDigits: 0 }); }
 function fmtDate(d: string) { return d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
@@ -71,6 +72,7 @@ export default function LoanDetail() {
           <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
+          <LiveClock variant="compact" />
           <StatusBadge status={loan.status} />
         </View>
 

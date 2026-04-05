@@ -3,21 +3,21 @@ import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'rea
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { loanApi } from '../../../../services/api';
 import { Button, Input } from '../../../../components/ui';
+import { DatePickerInput } from '../../../../components/DatePickerInput';
+import { LiveClock } from '../../../../components/LiveClock';
 import { Colors, Spacing, Typography, Shadow, Radius } from '../../../../constants/theme';
 
 export default function DisburseLoan() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ disbursedAmount: '', startDate: '' });
+  const [form, setForm] = useState({ disbursedAmount: '', startDate: null as Date | null });
   const [errors, setErrors] = useState<Record<string, string>>({});
-
-  const set = (f: string) => (v: string) => setForm((p) => ({ ...p, [f]: v }));
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.disbursedAmount || parseFloat(form.disbursedAmount) <= 0) e.disbursedAmount = 'Enter the disbursed amount';
-    if (!form.startDate) e.startDate = 'Enter start date (YYYY-MM-DD)';
+    if (!form.startDate) e.startDate = 'Select the loan start date';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -28,7 +28,7 @@ export default function DisburseLoan() {
     try {
       await loanApi.disburse(id, {
         disbursedAmount: parseFloat(form.disbursedAmount),
-        startDate: new Date(form.startDate).toISOString(),
+        startDate: form.startDate!.toISOString(),
       });
       Alert.alert('Success', 'Loan disbursed and EMI schedule generated');
       router.back();
@@ -47,7 +47,7 @@ export default function DisburseLoan() {
           <Text style={styles.backText}>← Cancel</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Disburse Loan</Text>
-        <View style={{ width: 80 }} />
+        <LiveClock variant="compact" />
       </View>
 
       <View style={styles.form}>
@@ -71,16 +71,19 @@ export default function DisburseLoan() {
           label="Disbursed Amount (₹) *"
           placeholder="98000"
           value={form.disbursedAmount}
-          onChangeText={set('disbursedAmount')}
+          onChangeText={(v) => setForm((p) => ({ ...p, disbursedAmount: v }))}
           keyboardType="numeric"
           error={errors.disbursedAmount}
         />
-        <Input
+
+        <DatePickerInput
           label="Start Date *"
-          placeholder="2024-01-01"
           value={form.startDate}
-          onChangeText={set('startDate')}
+          onChange={(date) => setForm((p) => ({ ...p, startDate: date }))}
+          placeholder="Select loan start date"
           error={errors.startDate}
+          minimumDate={new Date(2020, 0, 1)}
+          maximumDate={new Date(2030, 11, 31)}
         />
 
         <Button
@@ -107,7 +110,6 @@ const styles = StyleSheet.create({
   headerTitle: { color: Colors.white, fontSize: 20, fontWeight: '800' },
   form: { padding: Spacing.lg, paddingBottom: 40 },
 
-  // Notice
   notice: {
     flexDirection: 'row', alignItems: 'flex-start',
     backgroundColor: Colors.warning + '12',
