@@ -10,9 +10,15 @@ export const loanService = {
     const { page, limit, skip } = getPaginationParams(query);
 
     const where: any = {
-      ...(query.status && { status: query.status }),
       ...(query.customerId && { customerId: query.customerId }),
     };
+
+    // Special "OVERDUE" filter: overdue is tracked on installments, not loan.status
+    if (query.status === 'OVERDUE') {
+      where.installments = { some: { status: InstallmentStatus.OVERDUE } };
+    } else if (query.status) {
+      where.status = query.status;
+    }
 
     // Clients see only their own loans
     if (role === 'CLIENT') {

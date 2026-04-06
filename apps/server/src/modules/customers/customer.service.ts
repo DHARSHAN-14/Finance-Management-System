@@ -3,12 +3,14 @@ import { AppError } from '../../middleware/error.middleware';
 import { CreateCustomerInput, UpdateCustomerInput } from './customer.schema';
 import { getPaginationParams, paginate } from '../../utils/response';
 import { calculateHonestyScore } from '../../utils/finance';
+import { generateCustomerCode } from '../../utils/codes';
 
 export const customerService = {
   async list(query: any) {
     const { page, limit, skip } = getPaginationParams(query);
     const search = query.search as string | undefined;
     const isActive = query.isActive === 'false' ? false : query.isActive === 'true' ? true : undefined;
+    const isObjectIdSearch = Boolean(search && /^[a-f\d]{24}$/i.test(search));
 
     const where: any = {
       ...(isActive !== undefined && { isActive }),
@@ -17,6 +19,9 @@ export const customerService = {
           { name: { contains: search, mode: 'insensitive' } },
           { phone: { contains: search } },
           { email: { contains: search, mode: 'insensitive' } },
+          { customerCode: { contains: search, mode: 'insensitive' } },
+          { users: { some: { userCode: { contains: search, mode: 'insensitive' } } } },
+          ...(isObjectIdSearch ? [{ id: search }] : []),
         ],
       }),
     };
@@ -73,7 +78,20 @@ export const customerService = {
     const existing = await prisma.customer.findUnique({ where: { phone: data.phone } });
     if (existing) throw new AppError('Phone number already registered', 409);
 
-    return prisma.customer.create({ data });
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        return await prisma.customer.create({
+          data: {
+            ...data,
+            customerCode: generateCustomerCode(),
+          },
+        });
+      } catch (e: any) {
+        if (e?.code === 'P2002') continue;
+        throw e;
+      }
+    }
+    throw new AppError('Failed to generate unique customer id. Please retry.', 500);
   },
 
   async update(id: string, data: UpdateCustomerInput) {
@@ -91,11 +109,19 @@ export const customerService = {
 
   async deactivate(id: string) {
     await this.findById(id);
-    return prisma.customer.update({ where: { id }, data: { isActive: false } });
+    const [customer] = await prisma.$transaction([
+      prisma.customer.update({ where: { id }, data: { isActive: false } }),
+      prisma.user.updateMany({ where: { customerId: id }, data: { isActive: false } }),
+    ]);
+    return customer;
   },
 
   async activate(id: string) {
-    return prisma.customer.update({ where: { id }, data: { isActive: true } });
+    const [customer] = await prisma.$transaction([
+      prisma.customer.update({ where: { id }, data: { isActive: true } }),
+      prisma.user.updateMany({ where: { customerId: id }, data: { isActive: true } }),
+    ]);
+    return customer;
   },
 
   async getStats(id: string) {

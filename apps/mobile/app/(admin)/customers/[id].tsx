@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { customerApi } from '../../../services/api';
@@ -12,17 +12,30 @@ function fmt(n: number) { return '₹' + (n ?? 0).toLocaleString('en-IN', { maxi
 
 export default function CustomerDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const customerId = Array.isArray(id) ? id[0] : id;
   const [customer, setCustomer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const router = useRouter();
 
-  useEffect(() => {
-    customerApi.getById(id)
+  const load = useCallback(() => {
+    if (!customerId) {
+      setError('Customer ID is missing');
+      setLoading(false);
+      return Promise.resolve();
+    }
+
+    setLoading(true);
+    setError('');
+    return customerApi.getById(customerId)
       .then(({ data }) => setCustomer(data.data))
       .catch(() => setError('Failed to load customer'))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [customerId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const handleDeactivate = () => {
     Alert.alert('Deactivate Customer', 'Are you sure?', [
@@ -30,7 +43,7 @@ export default function CustomerDetail() {
       {
         text: 'Deactivate', style: 'destructive',
         onPress: async () => {
-          await customerApi.deactivate(id);
+          await customerApi.deactivate(customerId);
           router.back();
         },
       },
@@ -38,7 +51,7 @@ export default function CustomerDetail() {
   };
 
   if (loading) return <LoadingScreen />;
-  if (error || !customer) return <ErrorState message={error || 'Not found'} />;
+  if (error || !customer) return <ErrorState message={error || 'Not found'} onRetry={load} />;
 
   const score = customer.honestyScores?.[0];
   const scoreColor = !score ? Colors.gray400
@@ -54,7 +67,7 @@ export default function CustomerDetail() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={{ color: Colors.white, fontSize: 16 }}>← Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push(`/(admin)/customers/${id}/edit` as any)}>
+        <TouchableOpacity onPress={() => router.push(`/(admin)/customers/${customerId}/edit` as any)}>
           <Text style={{ color: Colors.white, fontSize: 16 }}>Edit</Text>
         </TouchableOpacity>
       </View>
@@ -103,7 +116,7 @@ export default function CustomerDetail() {
           <SectionHeader
             title="Loans"
             action={
-              <TouchableOpacity onPress={() => router.push(`/(admin)/loans?customerId=${id}` as any)}>
+              <TouchableOpacity onPress={() => router.push(`/(admin)/loans?customerId=${customerId}` as any)}>
                 <Text style={{ color: Colors.primary, fontSize: 13 }}>View All</Text>
               </TouchableOpacity>
             }
@@ -147,12 +160,12 @@ export default function CustomerDetail() {
       <View style={[styles.section, { paddingBottom: Spacing.xl }]}>
         <Button
           title="Record Payment"
-          onPress={() => router.push(`/(admin)/payments/new?customerId=${id}` as any)}
+          onPress={() => router.push(`/(admin)/payments/new?customerId=${customerId}` as any)}
           style={{ marginBottom: Spacing.sm }}
         />
         <Button
           title="Create Loan"
-          onPress={() => router.push(`/(admin)/loans/new?customerId=${id}` as any)}
+          onPress={() => router.push(`/(admin)/loans/new?customerId=${customerId}` as any)}
           variant="secondary"
           style={{ marginBottom: Spacing.sm }}
         />

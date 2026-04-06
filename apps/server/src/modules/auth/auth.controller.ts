@@ -10,6 +10,11 @@ export const authController = {
     sendSuccess(res, result, 'Login successful');
   }),
 
+  register: asyncHandler(async (req: Request, res: Response) => {
+    const result = await authService.register(req.body);
+    sendSuccess(res, result, 'Registration submitted. Await admin approval.', 201);
+  }),
+
   refresh: asyncHandler(async (req: Request, res: Response) => {
     const tokens = await authService.refreshToken(req.body.refreshToken);
     sendSuccess(res, tokens, 'Token refreshed');

@@ -84,6 +84,7 @@ api.interceptors.response.use(
 
 export const authApi = {
   login: (email: string, password: string) => api.post('/auth/login', { email, password }),
+  register: (data: any) => api.post('/auth/register', data),
   refresh: (refreshToken: string) => api.post('/auth/refresh', { refreshToken }),
   logout: (refreshToken: string) => api.post('/auth/logout', { refreshToken }),
   me: () => api.get('/auth/me'),
@@ -96,6 +97,7 @@ export const customerApi = {
   create: (data: any) => api.post('/customers', data),
   update: (id: string, data: any) => api.put(`/customers/${id}`, data),
   deactivate: (id: string) => api.patch(`/customers/${id}/deactivate`),
+  activate: (id: string) => api.patch(`/customers/${id}/activate`),
   getStats: (id: string) => api.get(`/customers/${id}/stats`),
   refreshScore: (id: string) => api.post(`/customers/${id}/refresh-score`),
 };

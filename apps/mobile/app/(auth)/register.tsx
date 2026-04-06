@@ -3,21 +3,56 @@ import { View, Text, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Ale
 import { useRouter } from 'expo-router';
 import { Button, Input } from '../../components/ui';
 import { Colors, Spacing, Typography } from '../../constants/theme';
+import { authApi } from '../../services/api';
 
 export default function RegisterScreen() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [phone, setPhone] = useState('');
     const [password, setPassword] = useState('');
     const [showPass, setShowPass] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
+    const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; phone?: string; password?: string }>({});
     const router = useRouter();
 
-    const handleRegister = () => {
-        if (!name || !email || !password) {
-            Alert.alert('Error', 'Please fill all fields');
-            return;
+    const handleRegister = async () => {
+        const e: { name?: string; email?: string; phone?: string; password?: string } = {};
+        const normalizedName = name.trim();
+        const normalizedEmail = email.trim().toLowerCase();
+        const normalizedPhone = phone.replace(/\s/g, '');
+
+        if (!normalizedName) e.name = 'Name is required';
+        else if (normalizedName.length < 2) e.name = 'Enter a valid name';
+
+        if (!normalizedEmail) e.email = 'Email is required';
+        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) e.email = 'Enter a valid email';
+
+        if (!normalizedPhone) e.phone = 'Phone number is required';
+        else if (!/^\d{10,15}$/.test(normalizedPhone)) e.phone = 'Enter a valid phone number';
+
+        if (!password) e.password = 'Password is required';
+        else if (password.length < 6) e.password = 'Minimum 6 characters';
+
+        setFieldErrors(e);
+        if (Object.keys(e).length > 0) return;
+
+        try {
+            setSubmitting(true);
+            await authApi.register({
+                name: normalizedName,
+                email: normalizedEmail,
+                phone: normalizedPhone,
+                password,
+            });
+
+            Alert.alert('Success', 'Registered successfully! Please wait for admin approval before logging in.');
+            router.replace('/(auth)/login');
+        } catch (error: any) {
+            const message = error?.response?.data?.message || error?.message || 'Registration failed';
+            Alert.alert('Registration failed', message);
+        } finally {
+            setSubmitting(false);
         }
-        Alert.alert('Success', 'Registered successfully! Please wait for admin approval before logging in.');
-        router.replace('/(auth)/login');
     };
 
     return (
@@ -37,15 +72,26 @@ export default function RegisterScreen() {
                         label="Full Name"
                         placeholder="John Doe"
                         value={name}
-                        onChangeText={setName}
+                        onChangeText={(v) => { setName(v); if (fieldErrors.name) setFieldErrors((p) => ({ ...p, name: undefined })); }}
+                        error={fieldErrors.name}
                     />
 
                     <Input
                         label="Email Address"
                         placeholder="you@example.com"
                         value={email}
-                        onChangeText={setEmail}
+                        onChangeText={(v) => { setEmail(v); if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: undefined })); }}
                         keyboardType="email-address"
+                        error={fieldErrors.email}
+                    />
+
+                    <Input
+                        label="Phone Number"
+                        placeholder="9876543210"
+                        value={phone}
+                        onChangeText={(v) => { setPhone(v); if (fieldErrors.phone) setFieldErrors((p) => ({ ...p, phone: undefined })); }}
+                        keyboardType="phone-pad"
+                        error={fieldErrors.phone}
                     />
 
                     <View>
@@ -53,15 +99,16 @@ export default function RegisterScreen() {
                             label="Password"
                             placeholder="Create a password"
                             value={password}
-                            onChangeText={setPassword}
+                            onChangeText={(v) => { setPassword(v); if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined })); }}
                             secureTextEntry={!showPass}
+                            error={fieldErrors.password}
                         />
                         <TouchableOpacity style={styles.showPassBtn} onPress={() => setShowPass(!showPass)}>
                             <Text style={{ color: Colors.primary, fontSize: 13 }}>{showPass ? 'Hide' : 'Show'}</Text>
                         </TouchableOpacity>
                     </View>
 
-                    <Button title="Sign Up" onPress={handleRegister} style={{ marginTop: Spacing.sm }} />
+                    <Button title="Sign Up" onPress={handleRegister} loading={submitting} disabled={submitting} style={{ marginTop: Spacing.sm }} />
 
                     <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/(auth)/login')}>
                         <Text style={{ color: Colors.textSecondary }}>Already have an account? <Text style={{ color: Colors.primary, fontWeight: '500' }}>Sign In</Text></Text>

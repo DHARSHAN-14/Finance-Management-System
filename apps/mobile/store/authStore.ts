@@ -4,11 +4,19 @@ import { authApi } from '../services/api';
 
 interface User {
   id: string;
+  userCode?: string;
   name: string;
   email: string;
   role: 'ADMIN' | 'STAFF' | 'CLIENT';
   phone?: string;
   customerId?: string;
+  customer?: {
+    id: string;
+    customerCode?: string;
+    name: string;
+    phone?: string;
+    address?: string;
+  };
 }
 
 interface AuthState {

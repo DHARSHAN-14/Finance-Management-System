@@ -1,19 +1,23 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TextInput,
-  TouchableOpacity, RefreshControl,
+  TouchableOpacity, RefreshControl, Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { customerApi } from '../../../services/api';
 import { Card, StatusBadge, LoadingScreen, ErrorState, EmptyState } from '../../../components/ui';
-import { Colors, Spacing, Typography, Radius } from '../../../constants/theme';
+import { Colors, Spacing, Typography, Radius, Shadow } from '../../../constants/theme';
+
+const STATUS_FILTERS = ['ALL', 'ACTIVE', 'PENDING', 'INACTIVE'] as const;
 
 export default function CustomersScreen() {
   const [customers, setCustomers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState<(typeof STATUS_FILTERS)[number]>('ALL');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const router = useRouter();
@@ -22,8 +26,16 @@ export default function CustomersScreen() {
     try {
       setError('');
       const p = reset ? 1 : page;
-      const { data } = await customerApi.list({ page: p, limit: 20, search: search || undefined });
-      const list = data.data;
+      const params: any = { page: p, limit: 20, search: search || undefined };
+      if (statusFilter === 'ACTIVE') params.isActive = 'true';
+      if (statusFilter === 'PENDING' || statusFilter === 'INACTIVE') params.isActive = 'false';
+
+      const { data } = await customerApi.list(params);
+      const list = Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data.data?.customers)
+          ? data.data.customers
+          : [];
       if (reset) {
         setCustomers(list);
         setPage(2);
@@ -38,9 +50,39 @@ export default function CustomersScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [search, page]);
+  }, [search, page, statusFilter]);
 
-  useEffect(() => { load(true); }, [search]);
+  useEffect(() => { load(true); }, [search, statusFilter]);
+  useFocusEffect(
+    useCallback(() => {
+      load(true);
+    }, [load])
+  );
+
+  const approve = useCallback((customer: any) => {
+    Alert.alert(
+      'Confirm customer?',
+      `Approve ${customer.name} to activate their login?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Confirm',
+          onPress: async () => {
+            try {
+              setApprovingId(customer.id);
+              await customerApi.activate(customer.id);
+              await load(true);
+            } catch (e: any) {
+              const msg = e?.response?.data?.message || e?.message || 'Failed to confirm customer';
+              Alert.alert('Error', msg);
+            } finally {
+              setApprovingId(null);
+            }
+          },
+        },
+      ]
+    );
+  }, [load]);
 
   const renderItem = ({ item }: any) => {
     const score = item.honestyScores?.[0];
@@ -68,7 +110,20 @@ export default function CustomersScreen() {
                 <Text style={{ color: scoreColor, fontWeight: '700', fontSize: 13 }}>{score.score}</Text>
               </View>
             )}
-            {!item.isActive && <StatusBadge status="INACTIVE" />}
+            {!item.isActive && (
+              <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                <StatusBadge status={statusFilter === 'PENDING' ? 'PENDING' : 'INACTIVE'} />
+                {statusFilter === 'PENDING' && (
+                  <TouchableOpacity
+                    onPress={(e: any) => { e?.stopPropagation?.(); approve(item); }}
+                    disabled={approvingId === item.id}
+                    style={[styles.confirmBtn, approvingId === item.id && { opacity: 0.6 }]}
+                  >
+                    <Text style={styles.confirmBtnText}>{approvingId === item.id ? 'Confirming…' : 'Confirm'}</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
           </View>
         </Card>
       </TouchableOpacity>
@@ -95,10 +150,32 @@ export default function CustomersScreen() {
         <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
         <TextInput
           style={styles.searchInput}
-          placeholder="Search by name or phone..."
+          placeholder="Search by name, phone, or ID..."
           placeholderTextColor={Colors.textMuted}
           value={search}
           onChangeText={(v) => { setSearch(v); setPage(1); }}
+        />
+      </View>
+
+      {/* Filter Chips */}
+      <View style={styles.filterContainer}>
+        <FlatList
+          horizontal
+          data={STATUS_FILTERS as any}
+          keyExtractor={(i) => i}
+          contentContainerStyle={styles.filterRow}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => {
+            const active = statusFilter === item;
+            return (
+              <TouchableOpacity
+                onPress={() => { setStatusFilter(item); setPage(1); }}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+              >
+                <Text style={[styles.filterText, active && styles.filterTextActive]}>{item}</Text>
+              </TouchableOpacity>
+            );
+          }}
         />
       </View>
 
@@ -139,6 +216,21 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: Colors.border,
   },
   searchInput: { flex: 1, paddingVertical: 12, fontSize: 14, color: Colors.text },
+
+  // Filters (Loans-style)
+  filterContainer: { backgroundColor: Colors.white, ...Shadow.sm, marginBottom: 4 },
+  filterRow: { paddingHorizontal: Spacing.md, paddingVertical: 12, gap: 8 },
+  filterChip: {
+    paddingHorizontal: 16, paddingVertical: 8, borderRadius: Radius.full,
+    backgroundColor: Colors.gray100, borderWidth: 1.5, borderColor: Colors.gray200,
+  },
+  filterChipActive: {
+    backgroundColor: Colors.primary, borderColor: Colors.primary,
+    ...Shadow.sm,
+  },
+  filterText: { fontSize: 13, fontWeight: '600', color: Colors.gray600 },
+  filterTextActive: { color: Colors.white },
+
   item: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   avatar: {
     width: 46, height: 46, borderRadius: 23,
@@ -149,4 +241,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 3,
     borderRadius: Radius.full, alignItems: 'center',
   },
+  confirmBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+    backgroundColor: Colors.primary,
+    ...Shadow.sm,
+  },
+  confirmBtnText: { color: Colors.white, fontWeight: '700', fontSize: 12 },
 });

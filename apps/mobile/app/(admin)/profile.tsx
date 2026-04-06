@@ -14,6 +14,8 @@ const MENU_ITEMS = [
 export default function AdminProfile() {
   const { user, logout } = useAuthStore();
   const router = useRouter();
+  const roleLabel = user?.role === 'STAFF' ? 'Staff ID' : user?.role === 'CLIENT' ? 'Client ID' : 'Admin ID';
+  const roleId = user?.role === 'CLIENT' ? user?.customer?.customerCode || user?.userCode : user?.userCode;
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -41,6 +43,7 @@ export default function AdminProfile() {
         <InfoRow label="Email" value={user?.email || '—'} />
         <InfoRow label="Phone" value={user?.phone || '—'} />
         <InfoRow label="Role" value={user?.role || '—'} />
+        <InfoRow label={roleLabel} value={roleId || '—'} />
       </Card>
 
       <Card style={styles.section}>

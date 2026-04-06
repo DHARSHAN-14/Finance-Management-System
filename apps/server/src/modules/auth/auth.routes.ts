@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authController } from './auth.controller';
 import { validate } from '../../middleware/validate.middleware';
 import { authenticate } from '../../middleware/auth.middleware';
-import { loginSchema, refreshTokenSchema, changePasswordSchema } from './auth.schema';
+import { loginSchema, refreshTokenSchema, changePasswordSchema, registerSchema } from './auth.schema';
 
 const router = Router();
 
@@ -27,6 +27,7 @@ const router = Router();
  *         description: Login successful
  */
 router.post('/login', validate(loginSchema), authController.login);
+router.post('/register', validate(registerSchema), authController.register);
 router.post('/refresh', validate(refreshTokenSchema), authController.refresh);
 router.post('/logout', validate(refreshTokenSchema), authController.logout);
 router.get('/me', authenticate, authController.me);

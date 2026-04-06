@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaClient, UserRole, LoanStatus, ChitStatus, PaymentMethod, InstallmentStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { calculateEMI, generateAmortizationSchedule } from '../utils/finance';
+import { generateCustomerCode, generateUserCode } from '../utils/codes';
 
 const prisma = new PrismaClient();
 
@@ -30,6 +31,7 @@ async function main() {
   // Admin user
   const admin = await prisma.user.create({
     data: {
+      userCode: generateUserCode('ADMIN'),
       name: 'SK Admin',
       email: 'admin@skassociates.com',
       password: hashedAdmin,
@@ -41,6 +43,7 @@ async function main() {
   // Staff user
   await prisma.user.create({
     data: {
+      userCode: generateUserCode('STAFF'),
       name: 'Priya Staff',
       email: 'staff@skassociates.com',
       password: hashedStaff,
@@ -52,6 +55,7 @@ async function main() {
   // Customers
   const customer1 = await prisma.customer.create({
     data: {
+      customerCode: generateCustomerCode(),
       name: 'Rajan Kumar',
       email: 'rajan@example.com',
       phone: '9876500001',
@@ -65,6 +69,7 @@ async function main() {
 
   const customer2 = await prisma.customer.create({
     data: {
+      customerCode: generateCustomerCode(),
       name: 'Meena Devi',
       email: 'meena@example.com',
       phone: '9876500002',
@@ -78,6 +83,7 @@ async function main() {
 
   const customer3 = await prisma.customer.create({
     data: {
+      customerCode: generateCustomerCode(),
       name: 'Suresh Babu',
       email: 'suresh@example.com',
       phone: '9876500003',
@@ -92,6 +98,7 @@ async function main() {
   // Client user linked to customer1
   await prisma.user.create({
     data: {
+      userCode: generateUserCode('CLIENT'),
       name: customer1.name,
       email: 'client@skassociates.com',
       password: hashedClient,

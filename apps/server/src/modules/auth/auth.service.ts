@@ -2,7 +2,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../../prisma/client';
 import { AppError } from '../../middleware/error.middleware';
-import { LoginInput } from './auth.schema';
+import { LoginInput, RegisterInput } from './auth.schema';
+import { generateCustomerCode, generateUserCode } from '../../utils/codes';
 
 const ACCESS_EXPIRES = process.env.JWT_EXPIRES_IN || '15m';
 const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
@@ -19,10 +20,11 @@ export const authService = {
   async login(input: LoginInput) {
     const user = await prisma.user.findUnique({
       where: { email: input.email },
-      include: { customer: { select: { id: true, name: true, phone: true } } },
+      include: { customer: { select: { id: true, customerCode: true, name: true, phone: true } } },
     });
 
-    if (!user || !user.isActive) throw new AppError('Invalid credentials', 401);
+    if (!user) throw new AppError('Invalid credentials', 401);
+    if (!user.isActive) throw new AppError('Account pending admin approval', 403);
 
     const valid = await bcrypt.compare(input.password, user.password);
     if (!valid) throw new AppError('Invalid credentials', 401);
@@ -45,6 +47,7 @@ export const authService = {
       refreshToken,
       user: {
         id: user.id,
+        userCode: user.userCode,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -53,6 +56,67 @@ export const authService = {
         customer: user.customer,
       },
     };
+  },
+
+  async register(input: RegisterInput) {
+    const email = input.email.trim().toLowerCase();
+
+    const [existingUser, existingCustomer] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.customer.findUnique({ where: { phone: input.phone } }),
+    ]);
+
+    if (existingUser) throw new AppError('Email already registered', 409);
+    if (existingCustomer) throw new AppError('Phone number already registered', 409);
+
+    const hashed = await bcrypt.hash(input.password, 12);
+
+    const result = await prisma.$transaction(async (tx) => {
+      // Retry a few times in the extremely unlikely event of code collisions.
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const customer = await tx.customer.create({
+            data: {
+              customerCode: generateCustomerCode(),
+              name: input.name,
+              email,
+              phone: input.phone,
+              address: input.address,
+              aadhaarNo: input.aadhaarNo,
+              panNo: input.panNo,
+              occupation: input.occupation,
+              monthlyIncome: input.monthlyIncome,
+              photoUrl: input.photoUrl,
+              isActive: false,
+            },
+            select: { id: true, customerCode: true, name: true, email: true, phone: true, isActive: true, createdAt: true },
+          });
+
+          await tx.user.create({
+            data: {
+              userCode: generateUserCode('CLIENT'),
+              name: input.name,
+              email,
+              password: hashed,
+              role: 'CLIENT',
+              phone: input.phone,
+              isActive: false,
+              customerId: customer.id,
+            },
+            select: { id: true },
+          });
+
+          return customer;
+        } catch (e: any) {
+          // Prisma unique constraint
+          if (e?.code === 'P2002') continue;
+          throw e;
+        }
+      }
+      throw new AppError('Failed to generate unique IDs. Please retry.', 500);
+    });
+
+    return result;
   },
 
   async refreshToken(token: string) {
@@ -109,9 +173,9 @@ export const authService = {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       select: {
-        id: true, name: true, email: true, role: true, phone: true,
+        id: true, userCode: true, name: true, email: true, role: true, phone: true,
         isActive: true, customerId: true, createdAt: true,
-        customer: { select: { id: true, name: true, phone: true, address: true } },
+        customer: { select: { id: true, customerCode: true, name: true, phone: true, address: true } },
       },
     });
     if (!user) throw new AppError('User not found', 404);

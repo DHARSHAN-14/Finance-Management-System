@@ -12,12 +12,26 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
   const { login, isLoggingIn, error, clearError } = useAuthStore();
   const router = useRouter();
 
+  const validate = () => {
+    const e: { email?: string; password?: string } = {};
+    const normalizedEmail = email.trim().toLowerCase();
+
+    if (!normalizedEmail) e.email = 'Email is required';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) e.email = 'Enter a valid email';
+
+    if (!password) e.password = 'Password is required';
+    else if (password.length < 6) e.password = 'Minimum 6 characters';
+
+    setFieldErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handleLogin = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter email and password');
+    if (!validate()) {
       return;
     }
     clearError();
@@ -59,8 +73,9 @@ export default function LoginScreen() {
             label="Email Address"
             placeholder="you@example.com"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={(v) => { setEmail(v); if (fieldErrors.email) setFieldErrors((p) => ({ ...p, email: undefined })); }}
             keyboardType="email-address"
+            error={fieldErrors.email}
           />
 
           <View>
@@ -68,8 +83,9 @@ export default function LoginScreen() {
               label="Password"
               placeholder="Enter your password"
               value={password}
-              onChangeText={setPassword}
+              onChangeText={(v) => { setPassword(v); if (fieldErrors.password) setFieldErrors((p) => ({ ...p, password: undefined })); }}
               secureTextEntry={!showPass}
+              error={fieldErrors.password}
             />
             <TouchableOpacity
               style={styles.showPassBtn}
