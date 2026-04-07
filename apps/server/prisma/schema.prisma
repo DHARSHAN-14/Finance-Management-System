@@ -88,8 +88,10 @@ model Customer {
   email         String?
   phone         String    @unique
   address       String?
-  aadhaarNo     String?   @unique
-  panNo         String?   @unique
+  // MongoDB unique indexes treat missing/NULL as a single value unless sparse.
+  // Keep these optional and enforce uniqueness in app logic only when provided.
+  aadhaarNo     String?
+  panNo         String?
   occupation    String?
   monthlyIncome Float?
   photoUrl      String?

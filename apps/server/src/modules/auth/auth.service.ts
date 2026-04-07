@@ -60,14 +60,20 @@ export const authService = {
 
   async register(input: RegisterInput) {
     const email = input.email.trim().toLowerCase();
+    const aadhaarNo = input.aadhaarNo?.trim() || undefined;
+    const panNo = input.panNo?.trim() || undefined;
 
-    const [existingUser, existingCustomer] = await Promise.all([
+    const [existingUser, existingCustomer, existingAadhaar, existingPan] = await Promise.all([
       prisma.user.findUnique({ where: { email } }),
       prisma.customer.findUnique({ where: { phone: input.phone } }),
+      aadhaarNo ? prisma.customer.findFirst({ where: { aadhaarNo } }) : Promise.resolve(null),
+      panNo ? prisma.customer.findFirst({ where: { panNo } }) : Promise.resolve(null),
     ]);
 
     if (existingUser) throw new AppError('Email already registered', 409);
     if (existingCustomer) throw new AppError('Phone number already registered', 409);
+    if (existingAadhaar) throw new AppError('Aadhaar number already registered', 409);
+    if (existingPan) throw new AppError('PAN number already registered', 409);
 
     const hashed = await bcrypt.hash(input.password, 12);
 
@@ -82,8 +88,8 @@ export const authService = {
               email,
               phone: input.phone,
               address: input.address,
-              aadhaarNo: input.aadhaarNo,
-              panNo: input.panNo,
+              ...(aadhaarNo ? { aadhaarNo } : {}),
+              ...(panNo ? { panNo } : {}),
               occupation: input.occupation,
               monthlyIncome: input.monthlyIncome,
               photoUrl: input.photoUrl,
