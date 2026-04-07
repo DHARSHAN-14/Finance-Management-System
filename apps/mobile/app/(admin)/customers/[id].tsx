@@ -84,7 +84,7 @@ export default function CustomerDetail() {
 
       {/* Honesty Score */}
       {score && (
-        <Card style={[styles.scoreCard, { borderColor: scoreColor }]}>
+        <Card style={{ ...styles.scoreCard, borderColor: scoreColor }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View>
               <Text style={[Typography.caption, { color: Colors.textSecondary }]}>Honesty Score</Text>

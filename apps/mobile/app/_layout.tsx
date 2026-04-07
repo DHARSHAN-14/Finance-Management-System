@@ -17,7 +17,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isMounted || isHydrating) return;
     // Expo Router often reports [] briefly; without this, post-login redirect never runs.
-    if (segments.length === 0) return;
+    if (!segments[0]) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
